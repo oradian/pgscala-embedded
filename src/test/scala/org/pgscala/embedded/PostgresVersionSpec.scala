@@ -14,9 +14,8 @@ class PostgresVersionSpec extends EmbeddedSpec {
   def checkLatestVersions =
     PostgresVersion.values === PostgresVersionUpdater.minorVersions
 
-  private[this] def constructExpectedUrl(version: PostgresVersion, os: OS): String = {
-    s"https://get.enterprisedb.com/postgresql/postgresql-${version}-1-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
-  }
+  private[this] def constructExpectedUrl(version: PostgresVersion, os: OS): String =
+    PostgresDownload(version, os).downloadUrl
 
   private[this] def constructInitialUrl(version: PostgresVersion, os: OS): String = {
     val pgVersionNoDots = s"${version.major}${version.minor}${version.patch}"
