@@ -6,7 +6,7 @@ class OSSpec extends EmbeddedSpec {
     resolution  ${checkThisResolution}
 """
 
-  def checkUseCaseVersions() = {
+  def checkUseCaseVersions = {
     import OS.Name._
     import OS.Architecture._
 
@@ -19,7 +19,7 @@ class OSSpec extends EmbeddedSpec {
     )
   }
 
-  def checkThisResolution() = {
+  def checkThisResolution = {
     OS.resolved must beSome[OS]
   }
 }

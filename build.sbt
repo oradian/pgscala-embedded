@@ -1,7 +1,7 @@
 // ### BASIC SETTINGS ### //
 organization := "org.pgscala.embedded"
 name := "pgscala-embedded"
-version := "0.0.1"
+version := "0.0.2"
 
 unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value)
 unmanagedSourceDirectories in Test := Seq((scalaSource in Test).value)
