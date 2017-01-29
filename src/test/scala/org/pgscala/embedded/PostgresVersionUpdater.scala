@@ -20,7 +20,7 @@ object PostgresVersionUpdater extends StrictLogging {
 
     // filter out legacy Postgres versions (i.e. take only >= 9.0.0)
     val versionsOfInterest = allVersions filter { _.major >= MinMajor }
-    logger.trace(s"Filtered down to ${versionsOfInterest.size} versions of interest: ${versionsOfInterest.mkString(", ")}")
+    logger.debug(s"Filtered down to ${versionsOfInterest.size} versions of interest: ${versionsOfInterest.mkString(", ")}")
 
     versionsOfInterest                  // SELECT * FROM versions
       .groupBy(e => (e.major, e.minor)) // GROUP BY major, minor

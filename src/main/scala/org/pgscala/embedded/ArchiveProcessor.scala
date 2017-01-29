@@ -2,7 +2,7 @@ package org.pgscala.embedded
 
 import java.io._
 import java.nio.file.attribute.FileTime
-import java.util.zip.{ZipException, _}
+import java.util.zip._
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveInputStream, TarArchiveOutputStream}
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
@@ -59,7 +59,7 @@ object ArchiveProcessor {
             filter(name, body) foreach { newBody =>
               val ne = new ZipEntry(ze)
               if (newBody ne body) { // optionally leave entry as-is
-                ne.setSize(newBody.length)
+                ne.setSize(newBody.length.toLong)
                 ne.setCrc {
                   val tmp = new CRC32()
                   tmp.update(newBody)
@@ -104,7 +104,7 @@ object ArchiveProcessor {
             val body = IOUtils.toByteArray(tgis)
             filter(name, body) foreach { newBody =>
               if (newBody ne body) { // optionally leave entry as-is
-                tge.setSize(newBody.length)
+                tge.setSize(newBody.length.toLong)
                 tge.setModTime(System.currentTimeMillis)
               }
               tgos.putArchiveEntry(tge)

@@ -16,14 +16,14 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
       can process empty              $zipCanProcessEmpty
       will remove empty directories  $zipWillRemoveEmptyDirectories
       clobbers duplicate files       $zipClobbersDuplicateFiles
-      can filters out files          $zipCanFilterOutFiles
-      can modifiy files              $zipCanModifyFiles
+      can filter out files           $zipCanFilterOutFiles
+      can modify files               $zipCanModifyFiles
 
     TGZ Archive Processor
       can process empty              $tgzCanProcessEmpty
       will remove empty directories  $tgzWillRemoveEmptyDirectories
-      can filters out files          $tgzCanFilterOutFiles
-      can modifiy files              $tgzCanModifyFiles
+      can filter out files           $tgzCanFilterOutFiles
+      can modify files               $tgzCanModifyFiles
 """
 
   /** everything after the FIRST dot is an extension */
@@ -81,18 +81,18 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
 
   def zipCanFilterOutFiles =
     (getZipContents("filter.zip".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
-      ArchiveProcessor.filterArchive("filter.zip".src, "filter.zip".dst, (name, body) => {
+      ArchiveProcessor.filterArchive("filter.zip".src, "filterOut.zip".dst, (name, body) => {
         if (name.startsWith("keep/")) Some(body) else None
       })
-      getZipContents("filter.zip".dst) ====  Map("keep/nested.txt" -> "identical")
+      getZipContents("filterOut.zip".dst) ====  Map("keep/nested.txt" -> "identical")
     }
 
   def zipCanModifyFiles =
     (getZipContents("filter.zip".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
-      ArchiveProcessor.filterArchive("filter.zip".src, "filter.zip".dst, (name, body) => {
+      ArchiveProcessor.filterArchive("filter.zip".src, "filterModify.zip".dst, (name, body) => {
         if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
       })
-      getZipContents("filter.zip".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
+      getZipContents("filterModify.zip".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }
 
   private[this] def getTgzContents(file: File): Map[String, String] = {
@@ -132,18 +132,18 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
 
   def tgzCanFilterOutFiles =
     (getTgzContents("filter.tar.gz".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
-      ArchiveProcessor.filterArchive("filter.tar.gz".src, "filter.tar.gz".dst, (name, body) => {
+      ArchiveProcessor.filterArchive("filter.tar.gz".src, "filterOut.tar.gz".dst, (name, body) => {
         if (name.startsWith("keep/")) Some(body) else None
       })
-      getTgzContents("filter.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical")
+      getTgzContents("filterOut.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical")
     }
 
   def tgzCanModifyFiles =
     (getTgzContents("filter.tar.gz".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
-      ArchiveProcessor.filterArchive("filter.tar.gz".src, "filter.tar.gz".dst, (name, body) => {
+      ArchiveProcessor.filterArchive("filter.tar.gz".src, "filterModify.tar.gz".dst, (name, body) => {
         if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
       })
-      getTgzContents("filter.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
+      getTgzContents("filterModify.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }
 
   override def beforeAll(): Unit = {
