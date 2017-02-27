@@ -4,12 +4,13 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.security.MessageDigest
-import java.util.{Arrays, Locale}
-import javax.xml.bind.DatatypeConverter
+import java.util.Arrays
 
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.compress.utils.IOUtils
 import org.pgscala.embedded.Downloader.{PostDownloadHook, ProgressListener, ProgressUpdate}
 import org.pgscala.embedded.PostgresDownload.VersionMetadata
+import org.pgscala.embedded.Util._
 
 private object PostgresDownload {
   private final val DownloadUrl = "https://get.enterprisedb.com/postgresql/"
@@ -17,7 +18,7 @@ private object PostgresDownload {
   private case class VersionMetadata(size: Long, sha256: Array[Byte])
 
   private val metadata: Map[PostgresDownload, VersionMetadata] = {
-    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("version-metadata.txt"))
+    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("/version-metadata.txt"))
     val sizeLines = new String(bytes, "ISO-8859-1").split('\n')
     (sizeLines map { sizeLine =>
       val verStr :: classifierStr :: sizeStr :: sha256Str :: Nil = sizeLine.split(';').toList
@@ -30,7 +31,7 @@ private object PostgresDownload {
   }
 }
 
-case class PostgresDownload(version: PostgresVersion, os: OS) {
+case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogging {
   val archiveName = s"postgresql-${version}-1-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
   val downloadUrl = PostgresDownload.DownloadUrl + archiveName
 
@@ -41,11 +42,8 @@ case class PostgresDownload(version: PostgresVersion, os: OS) {
   def resolveSha256: Option[Array[Byte]] = resolvedMetadata.map(_.sha256)
 
   private[this] val progressLogger: ProgressListener = Some((progressUpdate: ProgressUpdate) => {
-    println(archiveName + " -> " + progressUpdate)
+    logger.debug(archiveName + " -> " + progressUpdate)
   })
-
-  private[this] def bin2Hex(binary: Array[Byte]): String =
-    DatatypeConverter.printHexBinary(binary).toLowerCase(Locale.ROOT)
 
   private[this] val sha256Check: PostDownloadHook = Some((fileChannel: FileChannel, size: Long) => {
     val buffer = ByteBuffer.allocateDirect(64 * 1024)

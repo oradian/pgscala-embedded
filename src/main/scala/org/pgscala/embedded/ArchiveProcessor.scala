@@ -42,9 +42,9 @@ object ArchiveProcessor {
   }
 
   private[this] def filterZipArchive(is: InputStream, os: OutputStream, filter: EntryProcessor): Unit = {
-    val zis = new ZipInputStream(new BufferedInputStream(is))
+    val zis = new ZipInputStream(is)
     try {
-      val zos = new ZipOutputStream(new BufferedOutputStream(os))
+      val zos = new ZipOutputStream(os)
       try {
         @tailrec
         def repackage(): Unit = zis.getNextEntry() match {
