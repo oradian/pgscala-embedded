@@ -50,7 +50,7 @@ ${minorVersions.map { case PostgresVersion(major, minor, _) =>
 }
 """
 
-  def main(args: Array[String]): Unit  = {
+  def main(args: Array[String]): Unit = {
     val file = new File(EmbeddedSpec.projectRoot, "src/main/scala/org/pgscala/embedded/PostgresVersion.scala")
     val oldBody = FileUtils.readFileToString(file, "UTF-8")
 

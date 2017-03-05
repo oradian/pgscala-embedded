@@ -10,7 +10,7 @@ import org.specs2.specification.BeforeAfterAll
 
 import scala.collection.mutable.LinkedHashMap
 
-class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
+class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll {
   def is = s2"""
     ZIP Archive Processor
       can process empty              $zipCanProcessEmpty
@@ -68,7 +68,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
     }
 
   def zipWillRemoveEmptyDirectories =
-    (getZipContents("directories.zip".src) ====  Map("empty/" -> "", "non-empty/" -> "", "non-empty/uncompressed.bin" -> "")) and {
+    (getZipContents("directories.zip".src) ==== Map("empty/" -> "", "non-empty/" -> "", "non-empty/uncompressed.bin" -> "")) and {
       ArchiveProcessor.filterArchive("directories.zip".src, "directories.zip".dst, keepAll)
       getZipContents("directories.zip".dst) ==== Map("non-empty/uncompressed.bin" -> "")
     }
@@ -76,7 +76,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
   def zipClobbersDuplicateFiles =
     (getZipContents("aaa+aaa.zip".src) ==== Map("aaa.txt" -> "A" * 4000, "aaa.txt.duplicate" -> "A" * 4000)) and {
       ArchiveProcessor.filterArchive("aaa+aaa.zip".src, "aaa+aaa.zip".dst, keepAll)
-      getZipContents("aaa+aaa.zip".dst) ====  Map("aaa.txt" -> "A" * 4000)
+      getZipContents("aaa+aaa.zip".dst) ==== Map("aaa.txt" -> "A" * 4000)
     }
 
   def zipCanFilterOutFiles =
@@ -84,7 +84,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
       ArchiveProcessor.filterArchive("filter.zip".src, "filterOut.zip".dst, (name, body) => {
         if (name.startsWith("keep/")) Some(body) else None
       })
-      getZipContents("filterOut.zip".dst) ====  Map("keep/nested.txt" -> "identical")
+      getZipContents("filterOut.zip".dst) ==== Map("keep/nested.txt" -> "identical")
     }
 
   def zipCanModifyFiles =
@@ -92,7 +92,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
       ArchiveProcessor.filterArchive("filter.zip".src, "filterModify.zip".dst, (name, body) => {
         if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
       })
-      getZipContents("filterModify.zip".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
+      getZipContents("filterModify.zip".dst) ==== Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }
 
   private[this] def getTgzContents(file: File): Map[String, String] = {
@@ -125,7 +125,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
     }
 
   def tgzWillRemoveEmptyDirectories =
-    (getTgzContents("directories.tar.gz".src) ====  Map("empty/" -> "", "non-empty/" -> "", "non-empty/uncompressed.bin" -> "")) and {
+    (getTgzContents("directories.tar.gz".src) ==== Map("empty/" -> "", "non-empty/" -> "", "non-empty/uncompressed.bin" -> "")) and {
       ArchiveProcessor.filterArchive("directories.tar.gz".src, "directories.tar.gz".dst, keepAll)
       getTgzContents("directories.tar.gz".dst) ==== Map("non-empty/uncompressed.bin" -> "")
     }
@@ -135,7 +135,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
       ArchiveProcessor.filterArchive("filter.tar.gz".src, "filterOut.tar.gz".dst, (name, body) => {
         if (name.startsWith("keep/")) Some(body) else None
       })
-      getTgzContents("filterOut.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical")
+      getTgzContents("filterOut.tar.gz".dst) ==== Map("keep/nested.txt" -> "identical")
     }
 
   def tgzCanModifyFiles =
@@ -143,7 +143,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll{
       ArchiveProcessor.filterArchive("filter.tar.gz".src, "filterModify.tar.gz".dst, (name, body) => {
         if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
       })
-      getTgzContents("filterModify.tar.gz".dst) ====  Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
+      getTgzContents("filterModify.tar.gz".dst) ==== Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }
 
   override def beforeAll(): Unit = {

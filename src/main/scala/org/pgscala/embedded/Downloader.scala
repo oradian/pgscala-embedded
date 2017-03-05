@@ -4,7 +4,6 @@ import java.io._
 import java.net.{HttpURLConnection, URL}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, FileChannel}
-
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 

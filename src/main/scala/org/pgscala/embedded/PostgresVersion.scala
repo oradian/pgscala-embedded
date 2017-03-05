@@ -7,7 +7,7 @@ case class PostgresVersion(major: Int, minor: Int, patch: Int) extends Ordered[P
   require(minor >= 0, "Minor version cannot be negative")
   require(patch >= 0, "Patch version cannot be negative")
 
-  override def toString = major + "." + minor + "." + patch
+  override def toString: String = major + "." + minor + "." + patch
 
   override def compare(that: PostgresVersion): Int =
     Ordering[(Int, Int, Int)].compare((major, minor, patch), (that.major, that.minor, that.patch))

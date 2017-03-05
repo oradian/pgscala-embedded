@@ -3,8 +3,7 @@ package org.pgscala.embedded
 import java.io.File
 import java.net.HttpURLConnection
 import java.text.NumberFormat
-import java.util.Locale
-import javax.xml.bind.DatatypeConverter
+import Util._
 
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.io.FileUtils
@@ -13,9 +12,6 @@ import scala.util.Try
 
 object PostgresSizeUpdater extends StrictLogging {
   case class DownloadAttributes(version: PostgresVersion, os: OS, size: Long, sha256: Array[Byte])
-
-  private[this] def bin2Hex(binary: Array[Byte]): String =
-    DatatypeConverter.printHexBinary(binary).toLowerCase(Locale.ROOT)
 
   lazy val downloadAttributes = (for {
     ver <- PostgresVersion.values.par
@@ -42,7 +38,7 @@ object PostgresSizeUpdater extends StrictLogging {
     }
   }).seq
 
-  def main(args: Array[String]): Unit  = {
+  def main(args: Array[String]): Unit = {
     val file = new File(EmbeddedSpec.projectRoot, "src/main/resources/org/pgscala/embedded/version-metadata.txt")
     val oldBody = Try { FileUtils.readFileToString(file, "UTF-8") } getOrElse ""
 

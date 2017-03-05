@@ -1,24 +1,24 @@
 // ### BASIC SETTINGS ### //
 organization := "org.pgscala.embedded"
 name := "pgscala-embedded"
-version := "0.0.3"
+version := "0.1.0"
 
 unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value)
 unmanagedSourceDirectories in Test := Seq((scalaSource in Test).value)
 
 // ### DEPENDENCIES ### //
 libraryDependencies ++= Seq(
-  "org.slf4j"          %  "slf4j-api"       % "1.7.22"
-, "org.apache.commons" % "commons-compress" % "1.13"
+  "org.apache.commons"         %  "commons-compress" % "1.13"
+, "commons-io"                 %  "commons-io"       % "2.5"
+, "com.typesafe.scala-logging" %% "scala-logging"    % "3.5.0"
 
-, "org.specs2"                 %% "specs2-core"     % "3.8.6" % Test
-, "commons-io"                 %  "commons-io"      % "2.5"   % Test
-, "com.typesafe.scala-logging" %% "scala-logging"   % "3.5.0" % Test
-, "ch.qos.logback"             %  "logback-classic" % "1.1.8" % Test
+, "org.postgresql" %  "postgresql"      % "42.0.0" % Test
+, "org.specs2"     %% "specs2-core"     % "3.8.8"  % Test
+, "ch.qos.logback" %  "logback-classic" % "1.2.1"  % Test
 )
 
 // ### COMPILE SETTINGS ### //
-crossScalaVersions := Seq("2.12.1", "2.11.8", "2.10.6")
+crossScalaVersions := Seq("2.12.1", "2.11.8")
 scalaVersion := crossScalaVersions.value.head
 scalacOptions ++= Seq(
   "-deprecation"

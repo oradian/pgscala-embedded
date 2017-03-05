@@ -4,12 +4,13 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.security.MessageDigest
-import java.util.{Arrays, Locale}
-import javax.xml.bind.DatatypeConverter
+import java.util.Arrays
 
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.compress.utils.IOUtils
 import org.pgscala.embedded.Downloader.{PostDownloadHook, ProgressListener, ProgressUpdate}
 import org.pgscala.embedded.PostgresDownload.VersionMetadata
+import org.pgscala.embedded.Util._
 
 private object PostgresDownload {
   private final val DownloadUrl = "https://get.enterprisedb.com/postgresql/"
@@ -30,7 +31,7 @@ private object PostgresDownload {
   }
 }
 
-case class PostgresDownload(version: PostgresVersion, os: OS) {
+case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogging {
   val archiveName = s"postgresql-${version}-1-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
   val downloadUrl = PostgresDownload.DownloadUrl + archiveName
 
@@ -41,11 +42,8 @@ case class PostgresDownload(version: PostgresVersion, os: OS) {
   def resolveSha256: Option[Array[Byte]] = resolvedMetadata.map(_.sha256)
 
   private[this] val progressLogger: ProgressListener = Some((progressUpdate: ProgressUpdate) => {
-    println(archiveName + " -> " + progressUpdate)
+    logger.debug(s"Downloading ${archiveName} - ${progressUpdate.soFar}/${progressUpdate.size} ...")
   })
-
-  private[this] def bin2Hex(binary: Array[Byte]): String =
-    DatatypeConverter.printHexBinary(binary).toLowerCase(Locale.ROOT)
 
   private[this] val sha256Check: PostDownloadHook = Some((fileChannel: FileChannel, size: Long) => {
     val buffer = ByteBuffer.allocateDirect(64 * 1024)
@@ -63,12 +61,12 @@ case class PostgresDownload(version: PostgresVersion, os: OS) {
 
     (resolveSha256, md.digest()) match {
       case (Some(sha256), digest) if Arrays.equals(sha256, digest) =>
-        // logger.debug("SHA256 digest successfully verified")
+        logger.debug("SHA256 digest successfully verified")
       case (Some(sha256), digest) =>
-        // logger.error("SHA256 digest mismatch!")
+        logger.error("SHA256 digest mismatch!")
         sys.error(s"""SHA256 digest mismatch, expected "${bin2Hex(sha256)}", but got: "${bin2Hex(digest)}"""")
       case (_, digest) =>
-        // logger.debug(s"""SHA256 digest for download was not validated: "${bin2Hex(digest)}"""")
+        logger.debug(s"""SHA256 digest for download was not validated: "${bin2Hex(digest)}"""")
     }
   })
 
