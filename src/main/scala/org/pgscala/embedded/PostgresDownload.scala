@@ -18,7 +18,7 @@ private object PostgresDownload {
   private case class VersionMetadata(size: Long, sha256: Array[Byte])
 
   private val metadata: Map[PostgresDownload, VersionMetadata] = {
-    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("/version-metadata.txt"))
+    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("version-metadata.txt"))
     val sizeLines = new String(bytes, "ISO-8859-1").split('\n')
     (sizeLines map { sizeLine =>
       val verStr :: classifierStr :: sizeStr :: sha256Str :: Nil = sizeLine.split(';').toList
@@ -42,7 +42,7 @@ case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogg
   def resolveSha256: Option[Array[Byte]] = resolvedMetadata.map(_.sha256)
 
   private[this] val progressLogger: ProgressListener = Some((progressUpdate: ProgressUpdate) => {
-    logger.debug(archiveName + " -> " + progressUpdate)
+    logger.debug(s"Downloading ${archiveName} - ${progressUpdate.soFar}/${progressUpdate.size} ...")
   })
 
   private[this] val sha256Check: PostDownloadHook = Some((fileChannel: FileChannel, size: Long) => {
@@ -61,12 +61,12 @@ case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogg
 
     (resolveSha256, md.digest()) match {
       case (Some(sha256), digest) if Arrays.equals(sha256, digest) =>
-        // logger.debug("SHA256 digest successfully verified")
+        logger.debug("SHA256 digest successfully verified")
       case (Some(sha256), digest) =>
-        // logger.error("SHA256 digest mismatch!")
+        logger.error("SHA256 digest mismatch!")
         sys.error(s"""SHA256 digest mismatch, expected "${bin2Hex(sha256)}", but got: "${bin2Hex(digest)}"""")
       case (_, digest) =>
-        // logger.debug(s"""SHA256 digest for download was not validated: "${bin2Hex(digest)}"""")
+        logger.debug(s"""SHA256 digest for download was not validated: "${bin2Hex(digest)}"""")
     }
   })
 

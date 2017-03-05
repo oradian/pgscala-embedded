@@ -38,7 +38,7 @@ object PostgresSizeUpdater extends StrictLogging {
     }
   }).seq
 
-  def main(args: Array[String]): Unit  = {
+  def main(args: Array[String]): Unit = {
     val file = new File(EmbeddedSpec.projectRoot, "src/main/resources/org/pgscala/embedded/version-metadata.txt")
     val oldBody = Try { FileUtils.readFileToString(file, "UTF-8") } getOrElse ""
 

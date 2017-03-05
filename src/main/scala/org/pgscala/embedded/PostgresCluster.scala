@@ -1,6 +1,6 @@
 package org.pgscala.embedded
 
-import java.io.{BufferedReader, File, InputStream, InputStreamReader}
+import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
 import java.nio.charset.Charset
 import java.util.Locale
 import java.util.regex.{Matcher, Pattern}
@@ -9,8 +9,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.pgscala.embedded.Util._
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 
 object PostgresCluster extends StrictLogging {
   private val ArchiveFolderBlacklist = Seq(
@@ -36,16 +36,24 @@ object PostgresCluster extends StrictLogging {
     Util.digest(sb.toString)
   }
 
+  // windows will produce a brand new postgresql.conf on every initdb (read from the binary template)
+  // linux/max will copy the existing postgresql.conf.sample into the new cluster (that's why the #? in the regex pattern)
   private def processPostgresqlConf(body: String, settings: Map[String, String]): String =
     settings.foldLeft(body) { case (current, (key, value)) =>
-      current.replaceFirst(
-        s"""#?${Pattern.quote(key)}\\s*=\\s*\\S+""",
-        Matcher.quoteReplacement {
-          val line = key + " = " + value
-          logger.debug("Configuring cluster with: " + line)
-          line
-        }
-      ).ensuring(_ != current, "Could not configure cluster with: " + key + " = " + value)
+      val pattern = s"""#?${Pattern.quote(key)}\\s*=.*""".r.pattern
+      val matcher = pattern.matcher(current)
+      if (!matcher.find()) {
+        sys.error("Could not configure cluster with: " + key + " = " + value)
+      }
+      val replacement = Matcher.quoteReplacement {
+        val line = key + " = " + value
+        logger.debug("Configuring cluster with: " + line)
+        line
+      }
+      val sb = new StringBuffer
+      matcher.appendReplacement(sb, replacement)
+      matcher.appendTail(sb)
+      sb.toString
     }
 
   private def processArchiveEntry(name: String, bytes: Array[Byte], settings: Map[String, String]): Option[Array[Byte]] = {
@@ -58,6 +66,21 @@ object PostgresCluster extends StrictLogging {
       val newBody = processPostgresqlConf(body, settings)
       Some(newBody.getBytes("UTF-8"))
     }
+  }
+
+  private val executionContext ={
+    import java.util.concurrent.Executors
+
+    import scala.concurrent.ExecutionContext
+    ExecutionContext.fromExecutor(Executors.newCachedThreadPool)
+  }
+
+  private abstract sealed class PgExec(unixName: String, windowsName: String) {
+    lazy val name: String = if (Util.isUnix) unixName else windowsName
+  }
+  private object PgExec {
+    case object InitDb  extends PgExec("./initdb",  "initdb.exe")
+    case object PgCtl extends PgExec("./pg_ctl.sh", "pg_ctl.bat")
   }
 }
 
@@ -93,7 +116,7 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
         processArchiveEntry(name, bytes, settings)
       )
     } else {
-      println("Cache exists: " + cachedArchive.getAbsolutePath)
+      logger.info("Cache exists: {}", cachedArchive.getAbsolutePath)
     }
   }
 
@@ -102,138 +125,112 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
     ArchiveUnpacker.unpack(cachedArchive, targetFolder)
   }
 
-  def initialize(superuser: String, superuserPassword: String, port: Int): this.type = {
+  private[this] def runInTarget(relativePath: String, executable: PgExec, arguments: String*): ProcessBuilder = {
+    val args = if (Util.isUnix) Nil else Seq("cmd", "/c")
+    val pb = new ProcessBuilder((args :+ executable.name) ++ arguments :_*)
+    val execFolder = new File(targetFolder, relativePath)
+    pb.directory(execFolder)
+    pb
+  }
+
+  private[this] def waitForProcess(process: Process, timeout: Duration): Int = {
+    val errorFut = Future {
+      IOUtils.toString(process.getErrorStream, Charset.defaultCharset)
+    }(executionContext)
+    val outputFut = Future {
+      IOUtils.toString(process.getInputStream, Charset.defaultCharset)
+    }(executionContext)
+
+    process.getOutputStream.close()
+    process.waitFor(timeout.length, timeout.unit)
+
+    import scala.concurrent.Await
+    val error = Await.result(errorFut, 30 seconds)
+    val output = Await.result(outputFut, 30 seconds)
+    if (error.nonEmpty) logger.error(error)
+    if (output.nonEmpty) logger.debug(output)
+
+    process.exitValue()
+  }
+
+  def initialize(superuser: String, superuserPassword: String): this.type = {
     FileUtils.deleteDirectory(targetFolder)
     unpack(targetFolder)
 
     val passwordFile = new File(targetFolder, "password.txt")
     FileUtils.writeStringToFile(passwordFile, superuserPassword, "UTF-8")
 
-    val execFolder = new File(targetFolder, "pgsql")
     val dataFolder = new File(targetFolder, "data")
+    val process = runInTarget(
+      "pgsql/bin", PgExec.InitDb,
+      s"-U$superuser",
+      "-Apassword", s"--pwfile=${passwordFile.getPath}",
+      "-Eutf8",
+      s"-D${dataFolder.getPath}"
+    ).start()
 
-    val pb = new ProcessBuilder("initdb.exe", s"-U$superuser", "-Apassword", s"--pwfile=${passwordFile.getPath}", "-Eutf8", s"-D${dataFolder.getPath}")
-    pb.directory(execFolder)
-    val process = pb.start()
-
-    import scala.concurrent.{Await, ExecutionContext}
-    import scala.concurrent.duration._
-    import java.util.concurrent.Executors
-    val ec = ExecutionContext.fromExecutor(Executors.newCachedThreadPool)
-
-    val errorFut = Future {
-      IOUtils.toString(process.getErrorStream, Charset.defaultCharset)
-    }(ec)
-    val outputFut = Future {
-      IOUtils.toString(process.getInputStream, Charset.defaultCharset)
-    }(ec)
-
-    process.getOutputStream.close()
-    val error = Await.result(errorFut, 30 seconds)
-    val output = Await.result(outputFut, 30 seconds)
-    val exit = process.exitValue()
-
-    require(exit == 0, "Initialization was not successful:\n" + output + "\n" + error)
-
-    println("-" * 50)
-    println(output)
-    println("e" * 50)
-    println(error)
-    println("=" * 50)
+    val exit = waitForProcess(process, 30 seconds)
+    require(exit == 0, "Initialization was not successful!")
 
     val postgresqlConf = new File(dataFolder, "postgresql.conf")
     val oldConfig = FileUtils.readFileToString(postgresqlConf, "UTF-8")
     val newConfig = processPostgresqlConf(oldConfig, settings)
     FileUtils.writeStringToFile(postgresqlConf, newConfig, "UTF-8")
 
-    FileUtils.writeStringToFile(new File(targetFolder, "pg_start.bat"),
-      "\"%~dp0pgsql\\bin\\pg_ctl.exe\" \"-D%~dp0data\" start\r\n", "windows-1252")
-    FileUtils.writeStringToFile(new File(targetFolder, "pg_stop.bat"),
-      "\"%~dp0pgsql\\bin\\pg_ctl.exe\" \"-D%~dp0data\" stop\r\n", "windows-1252")
+    val pgCtlFile = new File(targetFolder, PgExec.PgCtl.name)
+    val body = IOUtils.toByteArray(getClass.getResource(pgCtlFile.getName))
+    FileUtils.writeByteArrayToFile(pgCtlFile, body)
+    pgCtlFile.setExecutable(true)
 
     this
   }
 
-  def start(): Unit = {
-    val pb = new ProcessBuilder("cmd", "/c", "pg_start.bat")
-    pb.directory(targetFolder)
-    val process = pb.start()
-
-    def mybr(is: InputStream) = new BufferedReader(new InputStreamReader(is) {
-      override def read(cbuf: Array[Char], offset: Int, length: Int): Int = {
-//        println(s"Reading ($offset, $length)")
-        super.read(cbuf, offset, length)
+  private[this] def logReader(file: File, onLine: String => Unit): Unit = Future {
+    while (!file.isFile) {
+      Thread.sleep(100)
+    }
+    val br = new BufferedReader(new InputStreamReader(new FileInputStream(file)))
+    var dead = false
+    while (true) {
+      val line = br.readLine()
+      if (line == null) {
+        dead = true
+      } else {
+        onLine(line)
       }
+    }
+  }(executionContext)
+
+  def start(): (Process, Future[Unit]) = {
+    val stdout = new File(targetFolder, "stdout.log")
+    val stderr = new File(targetFolder, "stderr.log")
+    stdout.delete()
+    stderr.delete()
+
+    val process = runInTarget("", PgExec.PgCtl, "start")
+      .redirectOutput(stdout)
+      .redirectError(stderr)
+      .start()
+    val clusterReady = Promise[Unit]()
+
+    logReader(stdout, line => {
+      if (line.contains("database system is ready to accept connections")) {
+        clusterReady.success(())
+      }
+      logger.debug(line)
     })
 
-    import scala.concurrent.{Await, ExecutionContext}
-    import java.util.concurrent.Executors
-    val ec = ExecutionContext.fromExecutor(Executors.newCachedThreadPool)
-
-    val errorFut = Future {
-      val br = mybr(process.getErrorStream)
-      var dead = false
-      println("STARTED ERR!")
-      while (true) {
-        val line = br.readLine()
-        if (line == null) {
-          dead = true
-        } else {
-          logger.debug("PG [err]: {}", line)
-        }
-      }
-      println("EXITED ERR!")
-    }(ec)
-    val outputFut = Future {
-      th = Thread.currentThread()
-      ooo = process.getInputStream
-      Try {
-        val br = mybr(ooo)
-        println("STARTED OUT!")
-        var dead = false
-        while (true) {
-          val line = br.readLine()
-          if (line == null) {
-            dead = true
-          } else {
-            logger.debug("PG [out]: {}", line)
-          }
-        }
-      } match {
-        case Success(x) => println("SUC" + x)
-        case Failure(f) => println("FAL" + f)
-      }
-      println("EXITED OUT!")
-    }(ec)
+    logReader(stderr, line => {
+      logger.error(line)
+    })
 
     process.getOutputStream.close()
+    (process, clusterReady.future)
   }
 
-  var th: Thread = null
-  var ooo: InputStream = null
-
   def stop(): Unit = {
-    val pb = new ProcessBuilder("cmd", "/c", "pg_stop.bat")
-    pb.directory(targetFolder)
-    val process = pb.start()
-
-    import scala.concurrent.{Await, ExecutionContext}
-    import scala.concurrent.duration._
-    import java.util.concurrent.Executors
-    val ec = ExecutionContext.fromExecutor(Executors.newCachedThreadPool)
-
-    val errorFut = Future {
-      IOUtils.toString(process.getErrorStream, Charset.defaultCharset)
-    }(ec)
-    val outputFut = Future {
-      IOUtils.toString(process.getInputStream, Charset.defaultCharset)
-    }(ec)
-
-    process.getOutputStream.close()
-    val error = Await.result(errorFut, 30 seconds)
-    val output = Await.result(outputFut, 30 seconds)
-    val exit = process.exitValue()
-
-    require(exit == 0, "Stop was not successful:\n" + output + "\n" + error)
+    val process = runInTarget("", PgExec.PgCtl, "stop").start()
+    val exit = waitForProcess(process, 30 seconds)
+    require(exit == 0, "Stop was not successful!")
   }
 }
