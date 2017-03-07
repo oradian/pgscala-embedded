@@ -7,16 +7,18 @@ class OS private (val name: OS.Name, val architecture: OS.Architecture) {
 }
 
 object OS {
-  sealed abstract class Name private (val classifier: String, val archiveMode: String)
+  sealed abstract class Name private (val marker: String, val archiveMode: String) {
+    val classifier = toString.toLowerCase(Locale.ROOT)
+  }
   object Name {
-    case object Linux extends Name("linux", "tar.gz")
-    case object Windows extends Name("windows", "zip")
-    case object Mac extends Name("osx", "zip")
-    val values: IndexedSeq[Name] = IndexedSeq(Linux, Windows, Mac)
+    case object Linux extends Name("Linux", "tar.gz")
+    case object Windows extends Name("Windows", "zip")
+    case object OSX extends Name("OS X", "zip")
+    val values: IndexedSeq[Name] = IndexedSeq(Linux, Windows, OSX)
 
     lazy val resolved: Option[Name] = {
-      val propsOsName = sys.props("os.name").toLowerCase(Locale.ROOT)
-      Name.values.find(os => propsOsName.contains(os.toString.toLowerCase(Locale.ROOT)))
+      val propsOsName = sys.props("os.name")
+      Name.values.find(name => propsOsName.contains(name.marker))
     }
   }
 
@@ -24,8 +26,8 @@ object OS {
   object Architecture {
     case object AMD64 extends Architecture("-x64")
     case object X86 extends Architecture("")
-    case object PPC extends Architecture("")
-    val values: IndexedSeq[Architecture] = IndexedSeq(AMD64, X86, PPC)
+    case object X86_64 extends Architecture("")
+    val values: IndexedSeq[Architecture] = IndexedSeq(AMD64, X86, X86_64)
 
     lazy val resolved: Option[Architecture] = {
       val propsOsArch = sys.props("os.arch")
@@ -36,8 +38,8 @@ object OS {
   lazy val values: IndexedSeq[OS] = for {
     name <- Name.values
     architecture <- Architecture.values
-    if name != Name.Mac && architecture != Architecture.PPC ||
-       name == Name.Mac && architecture == Architecture.PPC
+    if name != Name.OSX && architecture != Architecture.X86_64 ||
+       name == Name.OSX && architecture == Architecture.X86_64
   } yield new OS(name, architecture)
 
   def apply(name: Name, architecture: Architecture): OS = values find { os =>
