@@ -2,12 +2,12 @@ package org.pgscala.embedded
 
 import java.util.Locale
 
-class OS private(val name: OS.Name, val architecture: OS.Architecture) {
+class OS private (val name: OS.Name, val architecture: OS.Architecture) {
   override def toString = name.classifier + architecture.classifier
 }
 
 object OS {
-  sealed abstract class Name private(val classifier: String, val archiveMode: String)
+  sealed abstract class Name private (val classifier: String, val archiveMode: String)
   object Name {
     case object Linux extends Name("linux", "tar.gz")
     case object Windows extends Name("windows", "zip")
@@ -20,7 +20,7 @@ object OS {
     }
   }
 
-  sealed abstract class Architecture private(val classifier: String)
+  sealed abstract class Architecture private (val classifier: String)
   object Architecture {
     case object AMD64 extends Architecture("-x64")
     case object X86 extends Architecture("")

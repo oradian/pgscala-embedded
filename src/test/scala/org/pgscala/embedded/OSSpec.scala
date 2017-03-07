@@ -7,8 +7,8 @@ class OSSpec extends EmbeddedSpec {
 """
 
   def checkUseCaseVersions = {
-    import OS.Name._
     import OS.Architecture._
+    import OS.Name._
 
     OS.values ==== IndexedSeq(
       OS(Linux, AMD64)

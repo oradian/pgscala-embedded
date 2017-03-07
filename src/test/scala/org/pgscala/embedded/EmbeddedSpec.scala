@@ -1,6 +1,7 @@
 package org.pgscala.embedded
 
 import java.io.File
+
 import com.typesafe.scalalogging.StrictLogging
 import org.specs2.Specification
 

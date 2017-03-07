@@ -8,7 +8,7 @@ publishTo := Some(
 credentials ++= {
   val creds = Path.userHome / ".config" / "pgscala-embedded" / "nexus.config"
   if (creds.exists) Some(Credentials(creds)) else None
-}.toSeq 
+}.toSeq
 
 licenses += (("MIT License", url("https://opensource.org/licenses/MIT")))
 startYear := Some(2017)
