@@ -1,7 +1,9 @@
 package org.pgscala.embedded
 
 import java.net.HttpURLConnection
+
 import org.apache.commons.io.IOUtils
+
 import scala.collection.JavaConverters._
 import scala.util.{Success, Try}
 

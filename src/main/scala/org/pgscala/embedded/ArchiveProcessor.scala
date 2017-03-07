@@ -6,7 +6,7 @@ import java.util.zip._
 
 import org.apache.commons.compress.archivers.tar.{TarArchiveInputStream, TarArchiveOutputStream}
 import org.apache.commons.compress.compressors.gzip.{GzipCompressorInputStream, GzipCompressorOutputStream}
-import org.apache.commons.compress.utils.IOUtils
+import org.apache.commons.io.IOUtils
 
 import scala.annotation.tailrec
 

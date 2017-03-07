@@ -22,21 +22,8 @@ object Downloader {
   type PostDownloadHook = Option[(FileChannel, Long) => Unit]
 }
 
-import Downloader._
-
-case class Downloader(url: URL, file: File, size: Option[Long], maxRetries: Int = Downloader.MaxRetries, threads: Int = Downloader.MaxThreads) {
-  private[this] def resolveSize(): Long = {
-    val conn = url.openConnection().asInstanceOf[HttpURLConnection]
-    try {
-      conn.setRequestMethod("HEAD")
-      conn.getInputStream().close()
-      conn.getHeaderField("Content-Length").toLong
-    } finally {
-      conn.disconnect()
-    }
-  }
-
-  private[this] lazy val resolvedSize = size.getOrElse(resolveSize())
+case class Downloader(url: URL, file: File, size: Long, maxRetries: Int = Downloader.MaxRetries, threads: Int = Downloader.MaxThreads) {
+  import Downloader._
 
   private[this] class Worker(streamId: Int, oc: FileChannel, from: Long, to: Long, soFar: AtomicLong, progressListener: ProgressListener) {
     /** returns last successfully read byte index */
@@ -56,7 +43,7 @@ case class Downloader(url: URL, file: File, size: Option[Long], maxRetries: Int 
 
           if (progressListener.isDefined) {
             val current = soFar.addAndGet(readWithoutOverflow)
-            progressListener.get(ProgressUpdate(streamId, retry, resolvedSize, from, to, index, read, current))
+            progressListener.get(ProgressUpdate(streamId, retry, size, from, to, index, read, current))
           }
         }
         index
@@ -102,8 +89,8 @@ case class Downloader(url: URL, file: File, size: Option[Long], maxRetries: Int 
 
     val workers = (0 until threads) map { workerIndex =>
       Future {
-        val from = resolvedSize * workerIndex / threads
-        val to = resolvedSize * (workerIndex + 1) / threads
+        val from = size * workerIndex / threads
+        val to = size * (workerIndex + 1) / threads
         new Worker(workerIndex, oc, from, to, soFar, progressListener).downloadRange(0)
       }(executionContext)
     }

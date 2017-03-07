@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.io.FileUtils
 import org.specs2.mutable.Specification
 
-import scala.collection.mutable
+import scala.collection.mutable.LinkedHashMap
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -24,7 +24,7 @@ class SystemTest extends Specification with StrictLogging {
     logger.info("Deleting previous clusters ...")
     FileUtils.deleteDirectory(TestClustersFolder)
 
-    val portsReserved = new mutable.LinkedHashMap[PostgresVersion, Int]
+    val portsReserved = new LinkedHashMap[PostgresVersion, Int]
     val clusterVersions = PostgresVersion.values.take(4) // legacy clusters require legacy libraries on the OS
 
     val portsToTry = 5432 to 5678

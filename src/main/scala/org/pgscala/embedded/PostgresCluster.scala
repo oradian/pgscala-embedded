@@ -68,7 +68,7 @@ object PostgresCluster extends StrictLogging {
     }
   }
 
-  private val executionContext ={
+  private val executionContext = {
     import java.util.concurrent.Executors
 
     import scala.concurrent.ExecutionContext
@@ -79,8 +79,8 @@ object PostgresCluster extends StrictLogging {
     lazy val name: String = if (Util.isUnix) unixName else windowsName
   }
   private object PgExec {
-    case object InitDb  extends PgExec("./initdb",  "initdb.exe")
-    case object PgCtl extends PgExec("./pg_ctl.sh", "pg_ctl.bat")
+    case object InitDb extends PgExec("./initdb",    "initdb.exe")
+    case object PgCtl  extends PgExec("./pg_ctl.sh", "pg_ctl.bat")
   }
 }
 

@@ -3,10 +3,10 @@ package org.pgscala.embedded
 import java.io.File
 import java.net.HttpURLConnection
 import java.text.NumberFormat
-import Util._
 
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.io.FileUtils
+import org.pgscala.embedded.Util._
 
 import scala.util.Try
 
@@ -25,8 +25,7 @@ object PostgresSizeUpdater extends StrictLogging {
       val is = conn.getInputStream()
       try {
         val size = conn.getHeaderField("Content-Length").toLong
-        val sha256 = download.resolveSha256.getOrElse(sys.error(s"SHA256 for version ${ver} is undefined in `version-metadata.txt`" +
-          " and is out of scope for this updater, as the download would take bloody ages"))
+        val sha256 = download.sha256
         val nf = NumberFormat.getInstance()
         logger.debug(s"Retrieved attributes for $ver on OS $os - size: ${nf.format(size)} - sha256: ${bin2Hex(sha256)}")
         DownloadAttributes(ver, os, size, sha256)
