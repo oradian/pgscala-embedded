@@ -1,0 +1,25 @@
+language: scala
+
+os:
+  - linux
+  - osx
+
+osx_image: 
+  - xcode8
+
+scala:
+  - "2.12.1"
+  - "2.11.8"
+
+jdk:
+  - oraclejdk8
+
+sudo: false
+
+notifications:
+  email:
+    recipients:
+      - marko.elezovic@oradian.com
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION test
