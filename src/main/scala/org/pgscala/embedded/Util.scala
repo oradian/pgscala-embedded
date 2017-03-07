@@ -22,7 +22,7 @@ object Util extends StrictLogging {
   }
 
   lazy val isUnix: Boolean = OS.Name.resolved match {
-    case Some(OS.Name.Linux) | Some(OS.Name.Mac) => true
+    case Some(OS.Name.Linux) | Some(OS.Name.OSX) => true
     case _ => false
   }
 

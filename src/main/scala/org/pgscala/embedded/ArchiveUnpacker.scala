@@ -3,6 +3,7 @@ package org.pgscala.embedded
 import java.io._
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import java.util.EnumSet
 import java.util.zip._
 
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -67,6 +68,14 @@ object ArchiveUnpacker {
             fos.close()
           }
           target.setLastModified(ze.getLastModifiedTime.toMillis)
+          if (Util.isUnix) {
+            // TODO: this means we're on a Mac, unpacking a zip archive
+            // We need to read the actual permissions form the "extra"
+            // property of each zip entry and convert them insteaf of
+            // flipping on all permissions
+            val allPermissions = EnumSet.allOf(classOf[PosixFilePermission])
+            Files.setPosixFilePermissions(target.toPath, allPermissions)
+          }
           unpack()
       }
       unpack()

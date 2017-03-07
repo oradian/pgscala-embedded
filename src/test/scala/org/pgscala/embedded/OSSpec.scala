@@ -15,7 +15,7 @@ class OSSpec extends EmbeddedSpec {
     , OS(Linux, X86)
     , OS(Windows, AMD64)
     , OS(Windows, X86)
-    , OS(Mac, PPC)
+    , OS(OSX, X86_64)
     )
   }
 

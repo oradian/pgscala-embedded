@@ -25,8 +25,8 @@ class PostgresVersionSpec extends EmbeddedSpec {
     import OS.Architecture._
     import OS.Name._
     val classifier =
-      (os.name match { case Windows => "win"; case Linux => "linux"; case Mac => "osx" }) +
-      (os.architecture match { case AMD64 => "64"; case X86 => "32"; case PPC => "" })
+      (os.name match { case Windows => "win"; case Linux => "linux"; case OSX => "osx" }) +
+      (os.architecture match { case AMD64 => "64"; case X86 => "32"; case X86_64 => "" })
 
     s"https://www.enterprisedb.com/postgresql-${pgVersionNoDots}-binaries-${classifier}"
   }
