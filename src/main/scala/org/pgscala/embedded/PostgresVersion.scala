@@ -15,20 +15,20 @@ case class PostgresVersion private (major: Int, minor: Int, patch: Int) extends 
 
 object PostgresVersion {
   // latest available use-case versions
-  val `9.6.2` = PostgresVersion(9, 6, 2)
-  val `9.5.6` = PostgresVersion(9, 5, 6)
-  val `9.4.11` = PostgresVersion(9, 4, 11)
-  val `9.3.16` = PostgresVersion(9, 3, 16)
-  val `9.2.20` = PostgresVersion(9, 2, 20)
+  val `9.6.3` = PostgresVersion(9, 6, 3)
+  val `9.5.7` = PostgresVersion(9, 5, 7)
+  val `9.4.12` = PostgresVersion(9, 4, 12)
+  val `9.3.17` = PostgresVersion(9, 3, 17)
+  val `9.2.21` = PostgresVersion(9, 2, 21)
   val `9.1.24` = PostgresVersion(9, 1, 24)
   val `9.0.23` = PostgresVersion(9, 0, 23)
 
   // use-cases - preferably use these over hardcoding the patch version
-  val `9.6` = `9.6.2`
-  val `9.5` = `9.5.6`
-  val `9.4` = `9.4.11`
-  val `9.3` = `9.3.16`
-  val `9.2` = `9.2.20`
+  val `9.6` = `9.6.3`
+  val `9.5` = `9.5.7`
+  val `9.4` = `9.4.12`
+  val `9.3` = `9.3.17`
+  val `9.2` = `9.2.21`
   val `9.1` = `9.1.24`
   val `9.0` = `9.0.23`
 

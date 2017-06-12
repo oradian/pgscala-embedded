@@ -11,23 +11,15 @@ import org.apache.commons.io.IOUtils
 import org.pgscala.embedded.Downloader.{PostDownloadHook, ProgressListener, ProgressUpdate}
 import org.pgscala.embedded.Util._
 
-case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogging {
-  val (patch, size, sha256): (Int, Long, Array[Byte]) = {
-    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("version-metadata.txt"))
-    val lineVersion = version.toString + '-'
-    val sizeLine = new String(bytes, "ISO-8859-1").split('\n') find { sizeLine =>
-      sizeLine.startsWith(lineVersion) &&
-      sizeLine.contains(';' + os.toString + ';')
-    } getOrElse(sys.error("Could not resolve metadata for: " + this))
+private[embedded] trait PostgresDownloadBase extends StrictLogging {
+  def version: PostgresVersion
+  def os: OS
 
-    val Array(verPatchStr, _, sizeStr, sha256Str) = sizeLine.split(';')
-    val patch = verPatchStr.substring(lineVersion.length).toInt
-    val size = sizeStr.toLong
-    val sha256 = javax.xml.bind.DatatypeConverter.parseHexBinary(sha256Str)
-    (patch, size, sha256)
-  }
+  def variant: Int
+  def size: Long
+  def sha256: Array[Byte]
 
-  val archiveName = s"postgresql-${version}-${patch}-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
+  val archiveName = s"postgresql-${version}-${variant}-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
   val downloadUrl = "https://get.enterprisedb.com/postgresql/" + archiveName
 
   private[this] val progressLogger: ProgressListener = Some((progressUpdate: ProgressUpdate) => {
@@ -58,5 +50,22 @@ case class PostgresDownload(version: PostgresVersion, os: OS) extends StrictLogg
 
   def download(target: File): Unit = {
     Downloader(new java.net.URL(downloadUrl), target, size).download(progressLogger, sha256Check)
+  }
+}
+
+case class PostgresDownload(version: PostgresVersion, os: OS) extends PostgresDownloadBase {
+  lazy val (variant, size, sha256): (Int, Long, Array[Byte]) = {
+    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("version-metadata.txt"))
+    val lineVersion = version.toString + '-'
+    val sizeLine = new String(bytes, "ISO-8859-1").split('\n') find { sizeLine =>
+      sizeLine.startsWith(lineVersion) &&
+      sizeLine.contains(';' + os.toString + ';')
+    } getOrElse(sys.error("Could not resolve metadata for: " + this))
+
+    val Array(variantStr, _, sizeStr, sha256Str) = sizeLine.split(';')
+    val variant = variantStr.substring(lineVersion.length).toInt
+    val size = sizeStr.toLong
+    val sha256 = javax.xml.bind.DatatypeConverter.parseHexBinary(sha256Str)
+    (variant, size, sha256)
   }
 }

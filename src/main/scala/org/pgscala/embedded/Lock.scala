@@ -13,15 +13,15 @@ object Lock extends StrictLogging {
     def whenFirst[U](whenFirst: => (String, U)): WithFirst[U] = new WithFirst[U](() => whenFirst)
     def whenOther[U](whenOther: String => U): WithOther[U] = new WithOther[U](whenOther)
 
-    class WithFirst[U] private[Builder](whenFirst: () => (String, U)) {
+    class WithFirst[U] private[Builder] (whenFirst: () => (String, U)) {
       def whenOther(whenOther: String => U): WithFirstAndOther[U] = new WithFirstAndOther[U](whenFirst, whenOther)
     }
 
-    class WithOther[U] private[Builder](whenOther: String => U) {
+    class WithOther[U] private[Builder] (whenOther: String => U) {
       def whenFirst(whenFirst: () => (String, U)): WithFirstAndOther[U] = new WithFirstAndOther[U](whenFirst, whenOther)
     }
 
-    class WithFirstAndOther[U] private[Builder](whenFirst: () => (String, U), whenOther: String => U) {
+    class WithFirstAndOther[U] private[Builder] (whenFirst: () => (String, U), whenOther: String => U) {
       def lock(): U = {
         if (!file.isFile) {
           logger.trace(s"Lock file did not exist - creating a new lock: ${file}")
