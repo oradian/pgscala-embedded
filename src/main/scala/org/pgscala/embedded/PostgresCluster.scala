@@ -127,7 +127,7 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
 
   private[this] def runInTarget(relativePath: String, executable: PgExec, arguments: String*): ProcessBuilder = {
     val args = if (Util.isUnix) Nil else Seq("cmd", "/c")
-    val pb = new ProcessBuilder((args :+ executable.name) ++ arguments :_*)
+    val pb = new ProcessBuilder((args :+ executable.name) ++ arguments: _*)
     val execFolder = new File(targetFolder, relativePath)
     pb.directory(execFolder)
     pb

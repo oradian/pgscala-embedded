@@ -62,5 +62,7 @@ ${minorVersions.map { case PostgresVersion(major, minor, _) =>
     } else {
       logger.debug("No need to update PostgresVersion object, as it contains the latest versions")
     }
+
+    EmbeddedSpec.shutdown()
   }
 }
