@@ -9,15 +9,12 @@ import org.specs2.Specification
 import scala.concurrent.ExecutionContext
 
 object EmbeddedSpec {
-  val projectRoot: File = {
-    val classLocation = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-    val isWin = OS.Name.resolved == Some(OS.Name.Windows)
-    val path = if (isWin) classLocation.tail else classLocation
-    new File(path.replaceFirst("/target/.*?$", "")).getAbsoluteFile
-  }
+  val projectRoot: File = new File(implicitly[sourcecode.File].value
+    .replace('\\', '/')
+    .replaceFirst("/src/test/scala/.*?$", "")).getAbsoluteFile
 
   private[this] val cachedThreadPool = Executors.newCachedThreadPool()
-  val executionContext = ExecutionContext.fromExecutor(cachedThreadPool)
+  val executionContext: ExecutionContext = ExecutionContext.fromExecutor(cachedThreadPool)
 
   def shutdown(): Unit = {
     cachedThreadPool.shutdownNow()
@@ -25,5 +22,5 @@ object EmbeddedSpec {
 }
 
 trait EmbeddedSpec extends Specification with StrictLogging {
-  implicit val executionContext = EmbeddedSpec.executionContext
+  implicit val executionContext: ExecutionContext = EmbeddedSpec.executionContext
 }

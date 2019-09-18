@@ -2,6 +2,7 @@ package org.pgscala.embedded
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets._
 
 import com.typesafe.scalalogging.StrictLogging
 
@@ -36,12 +37,12 @@ object Lock extends StrictLogging {
             val read = channel.read(buffer)
             if (read <= 0) {
               val (firstPayload, firstResult) = whenFirst()
-              buffer.put(firstPayload.getBytes("ISO-8859-1"))
+              buffer.put(firstPayload.getBytes(ISO_8859_1))
               buffer.flip()
               channel.write(buffer)
               firstResult
             } else {
-              val lockBody = new String(array, 0, read, "ISO-8859-1")
+              val lockBody = new String(array, 0, read, ISO_8859_1)
               whenOther(lockBody)
             }
           } finally {

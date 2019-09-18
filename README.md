@@ -1,8 +1,8 @@
 # pgscala-embedded
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.org/oradian/pgscala-embedded.svg?branch=master)](https://travis-ci.org/oradian/pgscala-embedded)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.pgscala.embedded/pgscala-embedded_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.pgscala.embedded/pgscala-embedded_2.12)
-[![Scaladoc](https://javadoc-badge.appspot.com/org.pgscala.embedded/pgscala-embedded_2.12.svg?label=scaladoc)](http://javadoc-badge.appspot.com/org.pgscala.embedded/pgscala-embedded_2.12)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.pgscala.embedded/pgscala-embedded_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.pgscala.embedded/pgscala-embedded_2.13)
+[![Scaladoc](https://javadoc-badge.appspot.com/org.pgscala.embedded/pgscala-embedded_2.13.svg?label=scaladoc)](http://javadoc-badge.appspot.com/org.pgscala.embedded/pgscala-embedded_2.13)
 
 PostgreSQL cluster provisioning and utilities for Scala
 

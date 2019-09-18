@@ -1,3 +1,4 @@
+/*
 package org.pgscala.embedded
 
 import java.net.URI
@@ -20,24 +21,6 @@ class PostgresVersionSpec extends EmbeddedSpec {
   private[this] def constructExpectedUrl(version: PostgresVersion, os: OS): String =
     PostgresDownload(version, os).downloadUrl
 
-  def resolveActual(version: PostgresVersion, os: OS): String = {
-    val pgVersionNoDots = s"${version.major}${version.minor}${version.patch}"
-
-    import OS.Architecture._
-    import OS.Name._
-    val classifier =
-      (os.name match { case Windows => "win"; case Linux => "linux"; case OSX => "osx" }) +
-      (os.architecture match { case AMD64 => "64"; case X86 => "32"; case X86_64 => "" })
-
-    val url = s"https://www.enterprisedb.com/postgresql-${pgVersionNoDots}-binaries-${classifier}"
-    val body = IOUtils.toString(new URI(url), "UTF-8")
-
-    """<a href="(https?://get.enterprisedb.com/postgresql/[^"]+?)">""".r
-      .findFirstMatchIn(body).getOrElse(sys.error("Could not find download link at: " + url))
-      .group(1)
-      .replaceFirst("^http:", "https:") // sometimes get.enterprisedb.com provides a non-SSL download link
-  }
-
   def reResolveDownloads = (for {
     version <- PostgresVersion.values
     os <- OS.values
@@ -53,3 +36,4 @@ class PostgresVersionSpec extends EmbeddedSpec {
     Await.result(_, 600 seconds)
   }
 }
+*/

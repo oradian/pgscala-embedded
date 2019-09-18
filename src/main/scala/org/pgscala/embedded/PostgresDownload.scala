@@ -1,29 +1,27 @@
 package org.pgscala.embedded
 
-import java.io.File
+import java.io.{BufferedReader, File, InputStreamReader}
+import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.nio.charset.StandardCharsets._
 import java.security.MessageDigest
-import java.util.Arrays
 
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.commons.io.IOUtils
+import org.apache.commons.codec.binary.Hex
 import org.pgscala.embedded.Downloader.{PostDownloadHook, ProgressListener, ProgressUpdate}
-import org.pgscala.embedded.Util._
 
-private[embedded] trait PostgresDownloadBase extends StrictLogging {
-  def version: PostgresVersion
-  def os: OS
+import scala.annotation.tailrec
 
-  def variant: Int
-  def size: Long
-  def sha256: Array[Byte]
-
-  val archiveName = s"postgresql-${version}-${variant}-${os.name.classifier}${os.architecture.classifier}-binaries.${os.name.archiveMode}"
-  val downloadUrl = "https://get.enterprisedb.com/postgresql/" + archiveName
+case class PostgresDownload(
+    url: URI,
+    archiveName: String,
+    size: Option[Long],
+    sha256: Option[String]
+  ) extends StrictLogging {
 
   private[this] val progressLogger: ProgressListener = Some((progressUpdate: ProgressUpdate) => {
-    logger.debug(s"Downloading ${archiveName} - ${progressUpdate.soFar}/${progressUpdate.size} ...")
+    logger.debug(s"Downloading $archiveName - ${progressUpdate.soFar}/${progressUpdate.size} ...")
   })
 
   private[this] val sha256Check: PostDownloadHook = Some((fileChannel: FileChannel, size: Long) => {
@@ -40,32 +38,41 @@ private[embedded] trait PostgresDownloadBase extends StrictLogging {
       index += read
     }
 
-    val digest = md.digest()
-    if (Arrays.equals(sha256, digest)) {
-      logger.debug("SHA256 digest successfully verified")
-    } else {
-      sys.error(s"""SHA256 digest mismatch, expected "${bin2Hex(sha256)}", but got: "${bin2Hex(digest)}"""")
+    val digest = Hex.encodeHexString(md.digest())
+    sha256 foreach { hash =>
+      if (hash equalsIgnoreCase digest) {
+        logger.debug("SHA256 digest successfully verified")
+      } else {
+        sys.error(s"""SHA256 digest mismatch, expected "$hash", but got: "$digest"""")
+      }
     }
   })
 
   def download(target: File): Unit = {
-    Downloader(new java.net.URL(downloadUrl), target, size).download(progressLogger, sha256Check)
+    val expectedLength = size getOrElse Downloader.resolveSize(url)
+    Downloader(url, target, expectedLength).download(progressLogger, sha256Check)
   }
 }
 
-case class PostgresDownload(version: PostgresVersion, os: OS) extends PostgresDownloadBase {
-  lazy val (variant, size, sha256): (Int, Long, Array[Byte]) = {
-    val bytes = IOUtils.toByteArray(getClass.getResourceAsStream("version-metadata.txt"))
-    val lineVersion = version.toString + '-'
-    val sizeLine = new String(bytes, "ISO-8859-1").split('\n') find { sizeLine =>
-      sizeLine.startsWith(lineVersion) &&
-      sizeLine.contains(';' + os.toString + ';')
-    } getOrElse(sys.error("Could not resolve metadata for: " + this))
+object PostgresDownload {
+  @tailrec private[this] def seekVersion(reader: BufferedReader, versionLine: String): Option[String] =
+    reader.readLine() match {
+      case null => None
+      case line if line startsWith versionLine => Some(line)
+      case _ => seekVersion(reader, versionLine)
+    }
 
-    val Array(variantStr, _, sizeStr, sha256Str) = sizeLine.split(';')
-    val variant = variantStr.substring(lineVersion.length).toInt
-    val size = sizeStr.toLong
-    val sha256 = javax.xml.bind.DatatypeConverter.parseHexBinary(sha256Str)
-    (variant, size, sha256)
+  def apply(version: PostgresVersion, os: OS): PostgresDownload = {
+    val metadata = new BufferedReader(new InputStreamReader(getClass.getResourceAsStream("version-metadata.txt"), UTF_8))
+    val line = seekVersion(metadata, s"$version;$os;")
+      .getOrElse(sys.error(s"Could not resolve download metadata for PostgreSQL version '$version' and OS '$os'"))
+
+    val entries = line.split(";", -1)
+    // first two entries are already matched - version and OS
+    val url = entries(2)
+    val archiveName = url.replaceFirst(".*/", "")
+    val size = Option(entries(3)).filter(_.nonEmpty).map(_.toLong)
+    val sha256 = Option(entries(4)).filter(_.nonEmpty)
+    PostgresDownload(new URI(url), archiveName, size, sha256)
   }
 }

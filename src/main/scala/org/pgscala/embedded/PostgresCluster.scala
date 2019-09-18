@@ -2,12 +2,12 @@ package org.pgscala.embedded
 
 import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
 import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets._
 import java.util.Locale
 import java.util.regex.{Matcher, Pattern}
 
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.io.{FileUtils, IOUtils}
-import org.pgscala.embedded.Util._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
@@ -27,7 +27,7 @@ object PostgresCluster extends StrictLogging {
     "pgsql/symbols/"
   )
 
-  private def digestSettings(settings: Map[String, String]): Array[Byte] = {
+  private def digestSettings(settings: Map[String, String]): String = {
     val sb = new StringBuilder
     val orderedSettings = settings.toIndexedSeq.sorted
     orderedSettings foreach { case (key, value) =>
@@ -62,9 +62,9 @@ object PostgresCluster extends StrictLogging {
     } else if (!name.endsWith("postgresql.conf.sample")) {
       Some(bytes)
     } else {
-      val body = new String(bytes, "UTF-8")
+      val body = new String(bytes, UTF_8)
       val newBody = processPostgresqlConf(body, settings)
-      Some(newBody.getBytes("UTF-8"))
+      Some(newBody.getBytes(UTF_8))
     }
   }
 
@@ -87,11 +87,10 @@ object PostgresCluster extends StrictLogging {
 class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, settings: Map[String, String]) extends StrictLogging {
   import PostgresCluster._
 
-  val download = new PostgresDownload(postgresVersion, OS.resolved.get)
+  val download = PostgresDownload(postgresVersion, OS.resolved.get)
   val targetArchive = new File(Home.original, download.archiveName)
 
-  private val postgresqlConfDigest: Array[Byte] =
-    digestSettings(settings)
+  private val postgresqlConfDigest: String = digestSettings(settings)
 
   def resolveOriginal(): Unit = {
     if (!targetArchive.isFile) {
@@ -102,9 +101,8 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
     }
   }
 
-  val digest = bin2Hex(postgresqlConfDigest)
   private val cachedParent = new File(Home.cached, download.archiveName)
-  private val cachedArchive = new File(cachedParent, digest)
+  private val cachedArchive = new File(cachedParent, postgresqlConfDigest)
 
   def resolveCached(): Unit = {
     if (!cachedArchive.isFile) {
@@ -145,8 +143,8 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
     process.waitFor(timeout.length, timeout.unit)
 
     import scala.concurrent.Await
-    val error = Await.result(errorFut, 30 seconds)
-    val output = Await.result(outputFut, 30 seconds)
+    val error = Await.result(errorFut, 30.seconds)
+    val output = Await.result(outputFut, 30.seconds)
     if (error.nonEmpty) logger.error(error)
     if (output.nonEmpty) logger.debug(output)
 
@@ -158,7 +156,7 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
     unpack(targetFolder)
 
     val passwordFile = new File(targetFolder, "password.txt")
-    FileUtils.writeStringToFile(passwordFile, superuserPassword, "UTF-8")
+    FileUtils.writeStringToFile(passwordFile, superuserPassword, UTF_8)
 
     val dataFolder = new File(targetFolder, "data")
     val process = runInTarget(
@@ -169,13 +167,13 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
       s"-D${dataFolder.getPath}"
     ).start()
 
-    val exit = waitForProcess(process, 30 seconds)
+    val exit = waitForProcess(process, 30.seconds)
     require(exit == 0, "Initialization was not successful!")
 
     val postgresqlConf = new File(dataFolder, "postgresql.conf")
-    val oldConfig = FileUtils.readFileToString(postgresqlConf, "UTF-8")
+    val oldConfig = FileUtils.readFileToString(postgresqlConf, UTF_8)
     val newConfig = processPostgresqlConf(oldConfig, settings)
-    FileUtils.writeStringToFile(postgresqlConf, newConfig, "UTF-8")
+    FileUtils.writeStringToFile(postgresqlConf, newConfig, UTF_8)
 
     val pgCtlFile = new File(targetFolder, PgExec.PgCtl.name)
     val body = IOUtils.toByteArray(getClass.getResource(pgCtlFile.getName))
@@ -230,7 +228,7 @@ class PostgresCluster(postgresVersion: PostgresVersion, targetFolder: File, sett
 
   def stop(): Unit = {
     val process = runInTarget("", PgExec.PgCtl, "stop").start()
-    val exit = waitForProcess(process, 30 seconds)
+    val exit = waitForProcess(process, 30.seconds)
     require(exit == 0, "Stop was not successful!")
   }
 }

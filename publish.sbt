@@ -14,9 +14,9 @@ licenses += (("MIT License", url("https://opensource.org/licenses/MIT")))
 startYear := Some(2017)
 
 scmInfo := Some(ScmInfo(
-  url("https://github.com/oradian/pgscala-embedded")
-, "scm:git:https://github.com/oradian/pgscala-embedded.git"
-, Some("scm:git:git@github.com:oradian/pgscala-embedded.git")
+  url("https://github.com/oradian/pgscala-embedded"),
+  "scm:git:https://github.com/oradian/pgscala-embedded.git",
+  Some("scm:git:git@github.com:oradian/pgscala-embedded.git"),
 ))
 
 pomExtra :=

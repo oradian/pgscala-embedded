@@ -8,11 +8,16 @@ osx_image:
   - xcode8
 
 scala:
-  - "2.12.2"
-  - "2.11.11"
+  - "2.13.1"
+  - "2.12.10"
+  - "2.11.12"
 
 jdk:
-  - oraclejdk8
+  - openjdk12
+  - openjdk11
+  - openjdk10
+  - openjdk9
+  - openjdk8
 
 sudo: false
 

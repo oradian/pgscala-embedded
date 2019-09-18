@@ -1,6 +1,7 @@
 package org.pgscala.embedded
 
 import java.io._
+import java.nio.charset.StandardCharsets._
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.util.EnumSet
@@ -12,11 +13,6 @@ import org.apache.commons.io.IOUtils
 
 import scala.annotation.tailrec
 
-/** ArchiveProcessor has the ability to filter out files completely
-  * or modify their content while streaming the archive.
-  *
-  * In case archive entries were modified, their checksum and
-  * modifiedAt timestamp will be mutated. */
 object ArchiveUnpacker {
   def unpack(archive: File, targetFolder: File): Unit = {
     val is = new BufferedInputStream(new FileInputStream(archive))
@@ -27,7 +23,7 @@ object ArchiveUnpacker {
       val header = new Array[Byte](2)
       is.read(header)
       is.reset()
-      new String(header, "ISO-8859-1")
+      new String(header, ISO_8859_1)
     }
 
     if (!targetFolder.isDirectory) {
@@ -48,7 +44,7 @@ object ArchiveUnpacker {
     val zis = new ZipInputStream(new BufferedInputStream(is))
     try {
       @tailrec
-      def unpack(): Unit = zis.getNextEntry() match {
+      def unpack(): Unit = zis.getNextEntry match {
         case null => // end of archive
 
         case ze if ze.isDirectory =>
@@ -56,22 +52,21 @@ object ArchiveUnpacker {
 
         case ze =>
           val name = ze.getName
-          val body = IOUtils.toByteArray(zis)
           val target = new File(targetFolder, name)
           if (!target.getParentFile.isDirectory) {
             target.getParentFile.mkdirs()
           }
-          val fos = new FileOutputStream(target)
+          val os = Files.newOutputStream(target.toPath)
           try {
-            fos.write(body)
+            IOUtils.copy(zis, os)
           } finally {
-            fos.close()
+            os.close()
           }
           target.setLastModified(ze.getLastModifiedTime.toMillis)
           if (Util.isUnix) {
             // TODO: this means we're on a Mac, unpacking a zip archive
             // We need to read the actual permissions form the "extra"
-            // property of each zip entry and convert them insteaf of
+            // property of each zip entry and convert them instead of
             // flipping on all permissions
             val allPermissions = EnumSet.allOf(classOf[PosixFilePermission])
             Files.setPosixFilePermissions(target.toPath, allPermissions)
@@ -96,7 +91,7 @@ object ArchiveUnpacker {
     val tgis = new TarArchiveInputStream(new GzipCompressorInputStream(is))
     try {
       @tailrec
-      def unpack(): Unit = tgis.getNextTarEntry() match {
+      def unpack(): Unit = tgis.getNextTarEntry match {
         case null => // end of archive
 
         case tge if tge.isDirectory =>
@@ -113,12 +108,11 @@ object ArchiveUnpacker {
             Files.createSymbolicLink(target.toPath, new File(destination).toPath)
             // TODO: Change symlink date (setting lastModified does not affect it)
           } else {
-            val body = IOUtils.toByteArray(tgis)
-            val fos = new FileOutputStream(target)
+            val os = Files.newOutputStream(target.toPath)
             try {
-              fos.write(body)
+              IOUtils.copy(tgis, os)
             } finally {
-              fos.close()
+              os.close()
             }
             target.setLastModified(tge.getModTime.getTime)
             if (Util.isUnix) {

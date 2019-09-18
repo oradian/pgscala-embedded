@@ -3,6 +3,7 @@ package org.pgscala.embedded
 import java.io.{File, FileInputStream}
 import java.util.zip.{ZipEntry, ZipInputStream}
 
+import java.nio.charset.StandardCharsets._
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.{FileUtils, IOUtils}
@@ -47,7 +48,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll {
         ze = zis.getNextEntry()
         if (ze != null) {
           val name = ze.getName
-          val body = IOUtils.toString(zis, "ISO-8859-1")
+          val body = IOUtils.toString(zis, ISO_8859_1)
           if (files.get(name).isEmpty) {
             files(name) = body
           } else {
@@ -90,7 +91,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll {
   def zipCanModifyFiles =
     (getZipContents("filter.zip".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
       ArchiveProcessor.filterArchive("filter.zip".src, "filterModify.zip".dst, (name, body) => {
-        if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
+        if (name == "uncompressed.txt") Some("modified".getBytes(ISO_8859_1)) else Some(body)
       })
       getZipContents("filterModify.zip".dst) ==== Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }
@@ -104,7 +105,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll {
         tge = tgis.getNextTarEntry()
         if (tge != null) {
           val name = tge.getName
-          val body = IOUtils.toString(tgis, "ISO-8859-1")
+          val body = IOUtils.toString(tgis, ISO_8859_1)
           if (files.get(name).isEmpty) {
             files(name) = body
           } else {
@@ -141,7 +142,7 @@ class ArchiveProcessorSpec extends EmbeddedSpec with BeforeAfterAll {
   def tgzCanModifyFiles =
     (getTgzContents("filter.tar.gz".src) ==== Map("keep/" -> "", "keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "identical")) and {
       ArchiveProcessor.filterArchive("filter.tar.gz".src, "filterModify.tar.gz".dst, (name, body) => {
-        if (name == "uncompressed.txt") Some("modified".getBytes("ISO-8859-1")) else Some(body)
+        if (name == "uncompressed.txt") Some("modified".getBytes(ISO_8859_1)) else Some(body)
       })
       getTgzContents("filterModify.tar.gz".dst) ==== Map("keep/nested.txt" -> "identical", "original.txt" -> "identical", "uncompressed.txt" -> "modified")
     }

@@ -1,7 +1,7 @@
 package org.pgscala.embedded
 
 import java.io._
-import java.net.{HttpURLConnection, URL}
+import java.net.{HttpURLConnection, URI}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, FileChannel}
 import java.util.concurrent.Executors
@@ -20,9 +20,12 @@ object Downloader {
   case class ProgressUpdate(streamId: Int, retry: Int, size: Long, from: Long, to: Long, index: Long, thisUpdate: Int, soFar: Long)
   type ProgressListener = Option[ProgressUpdate => Unit]
   type PostDownloadHook = Option[(FileChannel, Long) => Unit]
+
+  def resolveSize(url: URI): Long =
+    url.toURL.openConnection().getContentLengthLong
 }
 
-case class Downloader(url: URL, file: File, size: Long, maxRetries: Int = Downloader.MaxRetries, threads: Int = Downloader.MaxThreads) {
+case class Downloader(url: URI, file: File, size: Long, maxRetries: Int = Downloader.MaxRetries, threads: Int = Downloader.MaxThreads) {
   import Downloader._
 
   private[this] class Worker(streamId: Int, oc: FileChannel, from: Long, to: Long, soFar: AtomicLong, progressListener: ProgressListener) {
@@ -57,11 +60,11 @@ case class Downloader(url: URL, file: File, size: Long, maxRetries: Int = Downlo
 
     /** retries to download a range by retrying (reopening the connection) for a couple times */
     def downloadRange(retry: Int): Unit = {
-      val conn = url.openConnection().asInstanceOf[HttpURLConnection]
+      val conn = url.toURL.openConnection().asInstanceOf[HttpURLConnection]
       try {
         conn.setRequestProperty("Range", s"bytes=${from}-${to - 1}")
         try {
-          val newFrom = pipeStream(retry, conn.getInputStream())
+          val newFrom = pipeStream(retry, conn.getInputStream)
           if (newFrom < to) {
             if (retry < maxRetries) {
               downloadRange(retry + 1)

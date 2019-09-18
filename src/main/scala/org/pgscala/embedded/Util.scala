@@ -2,18 +2,15 @@ package org.pgscala.embedded
 
 import java.net.{ConnectException, Socket}
 import java.security.MessageDigest
-import java.util.Locale
-import javax.xml.bind.DatatypeConverter
+import java.nio.charset.StandardCharsets._
 
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.commons.codec.binary.Hex
 
 object Util extends StrictLogging {
-  def bin2Hex(binary: Array[Byte]): String =
-    DatatypeConverter.printHexBinary(binary).toLowerCase(Locale.ROOT)
-
-  def digest(text: String): Array[Byte] = {
+  def digest(text: String): String = {
     val md = MessageDigest.getInstance("SHA-256")
-    md.digest(text.getBytes("UTF-8"))
+    Hex.encodeHexString(md.digest(text.getBytes(UTF_8)))
   }
 
   lazy val isWindows: Boolean = OS.Name.resolved match {

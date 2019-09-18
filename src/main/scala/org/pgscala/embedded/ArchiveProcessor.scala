@@ -1,6 +1,7 @@
 package org.pgscala.embedded
 
 import java.io._
+import java.nio.charset.StandardCharsets._
 import java.nio.file.attribute.FileTime
 import java.util.zip._
 
@@ -28,7 +29,7 @@ object ArchiveProcessor {
       val header = new Array[Byte](2)
       is.read(header)
       is.reset()
-      new String(header, "ISO-8859-1")
+      new String(header, ISO_8859_1)
     }
 
     magicNumber match {
@@ -47,7 +48,7 @@ object ArchiveProcessor {
       val zos = new ZipOutputStream(os)
       try {
         @tailrec
-        def repackage(): Unit = zis.getNextEntry() match {
+        def repackage(): Unit = zis.getNextEntry match {
           case null => // end of archive
 
           case ze if ze.isDirectory =>
@@ -93,7 +94,7 @@ object ArchiveProcessor {
       tgos.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
       try {
         @tailrec
-        def repackage(): Unit = tgis.getNextTarEntry() match {
+        def repackage(): Unit = tgis.getNextTarEntry match {
           case null => // end of archive
 
           case tge if tge.isDirectory =>

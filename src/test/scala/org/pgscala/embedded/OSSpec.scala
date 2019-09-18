@@ -11,11 +11,11 @@ class OSSpec extends EmbeddedSpec {
     import OS.Name._
 
     OS.values ==== IndexedSeq(
-      OS(Linux, AMD64)
-    , OS(Linux, X86)
-    , OS(Windows, AMD64)
-    , OS(Windows, X86)
-    , OS(OSX, X86_64)
+      OS(Linux, AMD64),
+      OS(Linux, X86),
+      OS(Windows, AMD64),
+      OS(Windows, X86),
+      OS(OSX, X86_64)
     )
   }
 
